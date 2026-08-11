@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 150" role="img" aria-labelledby="title desc">
+  <title id="title">Invictis</title>
+  <desc id="desc">Invictis Agency logo</desc>
+  <g fill="#ffffff">
+    <path d="M28 22h42l48 62-31 42L28 72z"/>
+    <path d="M70 22h43l52 68-31 42L70 72z"/>
+    <path d="M74 48l18 24-30 42-17-24z" fill="#09070f"/>
+  </g>
+  <text x="206" y="103" fill="#ffffff" font-family="Manrope, Arial, sans-serif" font-size="72" font-weight="700" letter-spacing="18">INVICTIS</text>
+</svg>

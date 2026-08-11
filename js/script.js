@@ -94,19 +94,109 @@ faqItems.forEach(details=>{
   });
 });
 
-/* Process progression */
+/* ============================================================
+UNIFIED PROCESS
+Website Development + Organic Social Media Marketing
+============================================================ */
 const process=document.querySelector('.process');
 const steps=[...document.querySelectorAll('.step[data-step]')];
+const processDetail=document.querySelector('.process-detail');
+
+const processData=[
+  {
+    title:'UNDERSTAND',
+    flow:'Business → Customer → Competitor → Goal',
+    text:'Understand what you offer, who you want to reach, and what customers need before deciding what to build.'
+  },
+  {
+    title:'FIND THE GAPS',
+    flow:'Visibility → Trust → Clarity → Conversion',
+    text:'Find weaknesses across your website and social presence that may be costing you attention or inquiries.'
+  },
+  {
+    title:'BUILD THE PRESENCE',
+    flow:'Website → Content → Social → Customer Journey',
+    text:'Build the digital presence around how your customers actually discover, evaluate, and contact your business.'
+  },
+  {
+    title:'ATTRACT & ENGAGE',
+    flow:'Content → Reach → Trust → Action',
+    text:'Create and publish useful organic content that keeps your business visible and gives potential customers reasons to trust you.'
+  },
+  {
+    title:'MEASURE & IMPROVE',
+    flow:'Review → Learn → Improve → Repeat',
+    text:'Use real performance and feedback to improve the website, content, and customer journey over time.'
+  }
+];
+
+let currentStep=1;
+
+function renderProcessDetail(stepNumber,animate=true){
+  if(!processDetail)return;
+  const data=processData[stepNumber-1];
+
+  const update=()=>{
+    processDetail.querySelector('.process-detail-label span').textContent=String(stepNumber).padStart(2,'0');
+    processDetail.querySelector('.process-detail-label b').textContent=data.title;
+    processDetail.querySelector('.process-detail-main strong').textContent=data.flow;
+    processDetail.querySelector('.process-detail-main p').textContent=data.text;
+    processDetail.classList.remove('is-changing');
+  };
+
+  if(animate){
+    processDetail.classList.add('is-changing');
+    window.setTimeout(update,160);
+  }else{
+    update();
+  }
+}
+
+function activateProcessStep(stepNumber,animate=true){
+  currentStep=stepNumber;
+
+  if(process){
+    process.dataset.progress=String(stepNumber);
+  }
+
+  steps.forEach(step=>{
+    const active=Number(step.dataset.step)===stepNumber;
+    step.classList.toggle('is-active',active);
+    step.setAttribute('aria-pressed',String(active));
+  });
+
+  renderProcessDetail(stepNumber,animate);
+}
+
+steps.forEach(step=>{
+  step.addEventListener('click',()=>{
+    activateProcessStep(Number(step.dataset.step),true);
+  });
+
+  step.addEventListener('keydown',e=>{
+    if(e.key==='Enter' || e.key===' '){
+      e.preventDefault();
+      activateProcessStep(Number(step.dataset.step),true);
+    }
+  });
+});
+
 if(process && steps.length){
   const processObserver=new IntersectionObserver(entries=>{
-    const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+    const visible=entries
+      .filter(e=>e.isIntersecting)
+      .sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+
     if(!visible)return;
+
     const current=Number(visible.target.dataset.step);
-    process.dataset.progress=current;
-    steps.forEach(step=>step.classList.toggle('is-active',Number(step.dataset.step)<=current));
+    if(current!==currentStep)activateProcessStep(current,false);
   },{rootMargin:'-35% 0px -45% 0px',threshold:.2});
+
   steps.forEach(step=>processObserver.observe(step));
 }
+
+renderProcessDetail(1,false);
 
 document.getElementById("year").textContent=new Date().getFullYear();
 
