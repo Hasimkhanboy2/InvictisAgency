@@ -12,6 +12,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<meta name="invictis-browser-compat" content="progressive-enhancement">
+<style id="invictis-browser-compat">
+  /* Keep critical lead-form content usable if privacy tools block enhancement scripts. */
+  .form-status[hidden]{display:none!important}
+  .form-status{margin-top:12px;font-size:.92rem}
+</style>
 </head>
 <body>
 <canvas id="starfield" aria-hidden="true"></canvas>
@@ -323,5 +329,47 @@
 </div>
 
 <script src="js/script.js"></script>
+
+<script id="invictis-browser-compat-js">
+(function () {
+  function lockExistingLeadForm() {
+    var form = document.querySelector('#leadForm, form');
+    if (!form || form.dataset.invictisSubmitGuard === '1') return;
+    form.dataset.invictisSubmitGuard = '1';
+
+    form.addEventListener('submit', function () {
+      if (form.dataset.invictisSubmitting === '1') {
+        return;
+      }
+      form.dataset.invictisSubmitting = '1';
+
+      var button = form.querySelector('button[type="submit"], input[type="submit"]');
+      if (button) {
+        button.dataset.originalText = button.textContent || button.value || '';
+        if ('textContent' in button) button.textContent = 'Sending...';
+        if ('value' in button && button.tagName === 'INPUT') button.value = 'Sending...';
+        button.disabled = true;
+
+        window.setTimeout(function () {
+          /* Re-enable only if the existing site code did not complete/reset the form. */
+          if (document.body.contains(button) && form.dataset.invictisSubmitting === '1') {
+            button.disabled = false;
+            if (button.tagName === 'INPUT') button.value = button.dataset.originalText || 'Submit';
+            else button.textContent = button.dataset.originalText || 'Submit';
+            form.dataset.invictisSubmitting = '0';
+          }
+        }, 10000);
+      }
+    }, false);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', lockExistingLeadForm);
+  } else {
+    lockExistingLeadForm();
+  }
+})();
+</script>
+
 </body>
 </html>
