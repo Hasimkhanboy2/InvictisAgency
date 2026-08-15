@@ -945,3 +945,137 @@ The existing Invictis visual system is intentionally preserved.
 .form-success-mark{width:48px;height:48px;border:1px solid rgba(255,255,255,.18);border-radius:50%;display:grid;place-items:center;font-size:22px;margin-bottom:18px}
 .form-success h3{font-family:Manrope,sans-serif;font-size:28px;line-height:1.1;margin:0}
 .form-success p{color:#bdb3c9;margin:10px 0 22px;font-size:13px;line-height:1.7}
+
+/* ============================================================
+   v1.8.1 MOBILE / PRIVACY-BROWSER HARDENING
+   Core content remains visible without JS-driven layout changes.
+============================================================ */
+
+/* Keep the founding offer readable on narrow screens. */
+@media (max-width: 720px){
+  .founding-banner{
+    min-height:42px;
+    padding:8px 10px;
+    gap:7px;
+    font-size:8.5px;
+    letter-spacing:.025em;
+  }
+  .founding-banner strong{font-size:8px}
+  .founding-banner b{display:inline;color:#fff}
+  .brand-logo{width:116px}
+
+  /* Mobile journey: intentionally visual without requiring
+     scroll-observer state changes. */
+  .journey{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+  .journey-start,
+  .journey-finish{
+    grid-column:1;
+    width:100%;
+  }
+  .journey-line{
+    display:none;
+  }
+  .journey-steps{
+    grid-column:1;
+    grid-row:auto;
+    display:grid;
+    gap:10px;
+    position:relative;
+  }
+  .journey-steps::before{
+    content:"";
+    position:absolute;
+    left:19px;
+    top:14px;
+    bottom:14px;
+    width:2px;
+    background:linear-gradient(180deg,var(--yellow),rgba(255,216,90,.08));
+    pointer-events:none;
+  }
+  .journey-steps article{
+    position:relative;
+    z-index:1;
+    display:grid;
+    grid-template-columns:40px minmax(0,1fr);
+    gap:10px;
+    padding:16px;
+    min-height:0;
+    background:rgba(22,15,36,.9);
+  }
+  .journey-steps article > span{
+    width:34px;
+    height:34px;
+    display:grid;
+    place-items:center;
+    position:relative;
+    z-index:2;
+  }
+  .journey-steps h3{
+    font-size:17px;
+    line-height:1.2;
+    margin:0 0 5px;
+  }
+  .journey-steps p{
+    font-size:11px;
+    line-height:1.6;
+    max-width:none;
+    margin:0;
+  }
+  .journey-end{
+    padding:20px;
+    border-radius:18px;
+  }
+  .journey-end h3{font-size:22px;line-height:1.15}
+  .journey-end li{font-size:11px;line-height:1.55}
+
+  /* Make the first-3 offer self-contained and readable. */
+  .trial-card{
+    padding:22px;
+    border-radius:20px;
+  }
+  .trial-card h2{
+    font-size:clamp(34px,9vw,48px);
+    line-height:1.05;
+  }
+  .trial-cta{
+    margin-top:4px;
+  }
+
+  /* Chatbox stays inside the viewport on small screens. */
+  .assistant{
+    right:10px;
+    bottom:10px;
+    left:10px;
+  }
+  .assistant-toggle{
+    margin-left:auto;
+    max-width:max-content;
+  }
+  .assistant-panel{
+    right:0;
+    left:auto;
+    width:min(380px,calc(100vw - 20px));
+    max-height:min(72vh,560px);
+  }
+}
+
+/* If the interactive JS fails, the actual journey content is still
+   styled as cards rather than collapsing into plain text. */
+@media (max-width: 480px){
+  .journey-steps article{grid-template-columns:36px minmax(0,1fr);padding:14px}
+  .journey-steps article > span{width:32px;height:32px}
+  .journey-steps p{font-size:11px}
+  .founding-banner span:nth-of-type(2){display:none}
+}
+
+/* Accessibility: keyboard and touch targets. */
+.founding-banner,
+.assistant-toggle,
+.assistant-option,
+.btn{
+  -webkit-tap-highlight-color:transparent;
+}
