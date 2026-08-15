@@ -205,12 +205,48 @@ document.querySelectorAll("[data-placeholder]").forEach(a=>a.addEventListener("c
   alert("Placeholder link. Replace this with your real project, social or booking URL before launch.");
 }));
 
-document.getElementById("review-form")?.addEventListener("submit",e=>{
-  e.preventDefault();
-  const b=e.currentTarget.querySelector("button"),old=b.innerHTML;
-  b.innerHTML="Demo submitted ✓";b.disabled=true;
-  setTimeout(()=>{b.innerHTML=old;b.disabled=false;e.currentTarget.reset()},2200);
-});
+/* ============================================================
+INVICTIS LEAD FORM
+Connects the website application form to the deployed Apps Script lead endpoint.
+============================================================ */
+(function initLeadForm(){
+  const form = document.getElementById("review-form");
+  if(!form) return;
+  const ENDPOINT = "https://script.google.com/macros/s/AKfycby_AW-SQVPQTIaz0tzOmOtgLCg5Rj5NxZlrwBPLwXDs6T_Wcmsi_rPTRuSe0IyfIPHB/exec";
+  const button = form.querySelector('button[type="submit"]');
+  const status = document.getElementById("form-status");
+  function setStatus(message, state){ if(!status) return; status.textContent=message; status.dataset.state=state||""; }
+  function normalizePhone(value){ let digits=String(value||"").replace(/\D/g,""); if(digits.startsWith("91")&&digits.length===12) digits=digits.slice(2); return digits; }
+  function validIndianPhone(value){ return /^[6-9]\d{9}$/.test(normalizePhone(value)); }
+  function validEmail(value){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||"").trim()); }
+  form.addEventListener("submit",function(event){
+    event.preventDefault();
+    if(form.dataset.submitting==="true") return;
+    const formData=new FormData(form);
+    const name=String(formData.get("name")||"").trim();
+    const business=String(formData.get("business")||"").trim();
+    const email=String(formData.get("email")||"").trim().toLowerCase();
+    const phone=String(formData.get("phone")||"").trim();
+    const honeypot=String(formData.get("website")||"").trim();
+    if(honeypot){setStatus("Please submit the form normally.","error");return;}
+    if(name.length<2){setStatus("Please enter your name.","error");form.elements.name?.focus();return;}
+    if(business.length<2){setStatus("Please enter your business name.","error");form.elements.business?.focus();return;}
+    if(!validEmail(email)){setStatus("Please enter a valid email address.","error");form.elements.email?.focus();return;}
+    if(!validIndianPhone(phone)){setStatus("Please enter a valid 10-digit Indian mobile number.","error");form.elements.phone?.focus();return;}
+    form.dataset.submitting="true";
+    if(button){button.disabled=true;button.innerHTML="Sending... <span aria-hidden=\"true\">↗</span>";}
+    setStatus("Sending your details securely...","loading");
+    const frameName="invictis-lead-frame-"+Date.now();
+    const iframe=document.createElement("iframe"); iframe.name=frameName; iframe.title="Lead submission"; iframe.hidden=true; document.body.appendChild(iframe);
+    const submitForm=document.createElement("form"); submitForm.method="POST"; submitForm.action=ENDPOINT; submitForm.target=frameName; submitForm.style.display="none";
+    for(const [key,value] of formData.entries()){const input=document.createElement("input");input.type="hidden";input.name=key;input.value=value;submitForm.appendChild(input);}
+    document.body.appendChild(submitForm); submitForm.submit();
+    window.setTimeout(()=>{
+      form.innerHTML=`<header><b>THANK YOU</b><small>Your details have been received.</small></header><div class="form-success"><div class="form-success-mark" aria-hidden="true">✓</div><h3>We have your details.</h3><p>We'll review your business and contact you using the details you provided.</p><a class="btn btn-primary" href="#home">Back to website ↗</a></div>`;
+      submitForm.remove(); iframe.remove();
+    },1200);
+  });
+})();
 
 /* ============================================================
 CONTINUOUS TICKER
@@ -271,4 +307,132 @@ viewport, and move exactly one group per cycle.
     window.addEventListener('resize',buildTicker,{passive:true});
   }
 })();
+
+
+/* ============================================================
+v1.8 ADDITIONS
+============================================================ */
+(function(){
+  const assistant = document.getElementById("assistant");
+  const toggle = assistant?.querySelector(".assistant-toggle");
+  const panel = document.getElementById("assistant-panel");
+  const close = assistant?.querySelector(".assistant-close");
+  const messages = document.getElementById("assistant-messages");
+  const options = document.getElementById("assistant-options");
+  const input = document.getElementById("assistant-input");
+  const send = document.getElementById("assistant-send");
+
+  if(!assistant || !toggle || !panel || !messages || !options) return;
+
+  const topics = {
+    website: {
+      label:"Website",
+      answer:"We build conversion-focused websites for local service and home/interior businesses. The founding trial starts with a strong one-page website foundation. Additional pages and ongoing website work can continue under a paid monthly plan.",
+      options:["30-Day Trial","What is included?","Apply now"]
+    },
+    trial: {
+      label:"30-Day Trial",
+      answer:"The Founding Client Program is a 30-day free trial for the first 3 selected businesses. It starts with a business and online presence audit, a conversion-focused one-page website and agreed organic growth support.",
+      options:["What happens after 30 days?","Apply now"]
+    },
+    services: {
+      label:"Services",
+      answer:"Our core services are Website Design & Development, Business & Website Audit, Organic Social Media and Content Strategy. We can also add analytics, Search Console, chat, email follow-up and other integrations when they make sense.",
+      options:["Website","Organic Social","Apply now"]
+    },
+    growth: {
+      label:"Organic Growth",
+      answer:"Our growth direction combines content strategy, useful content, organic social publishing and measurement. The goal is to keep the business visible and give potential customers more reasons to trust and contact it.",
+      options:["What is the 3-month plan?","Apply now"]
+    },
+    analytics: {
+      label:"Analytics",
+      answer:"Client websites can include Google Analytics 4 and Google Search Console setup so the business can understand traffic, search visibility and important customer actions.",
+      options:["Website","Apply now"]
+    },
+    chat: {
+      label:"Chat Assistant",
+      answer:"We can add a lightweight website assistant that answers common questions, explains services, qualifies basic intent and directs visitors to the right next action. More advanced AI automation can be added later when it is justified.",
+      options:["Apply now"]
+    },
+    apply: {
+      label:"Apply",
+      answer:"Tell us about your business using the application form. We will review the details and decide whether the founding program is a sensible fit.",
+      options:["Open application"]
+    }
+  };
+
+  function addMessage(text, type="bot"){
+    const el=document.createElement("div");
+    el.className="assistant-msg "+type;
+    el.textContent=text;
+    messages.appendChild(el);
+    messages.scrollTop=messages.scrollHeight;
+  }
+
+  function renderOptions(list){
+    options.innerHTML="";
+    list.forEach(label=>{
+      const b=document.createElement("button");
+      b.type="button"; b.className="assistant-option"; b.textContent=label;
+      b.addEventListener("click",()=>handle(label));
+      options.appendChild(b);
+    });
+  }
+
+  function handle(label){
+    addMessage(label,"user");
+    const q=label.toLowerCase();
+    if(q.includes("apply") || q.includes("open application")){
+      addMessage("The application form is at the bottom of the page. It sends the details to the Invictis lead inbox.");
+      renderOptions(["Open application"]);
+      document.getElementById("contact")?.scrollIntoView({behavior:"smooth"});
+      return;
+    }
+    let key="services";
+    if(q.includes("website")) key="website";
+    else if(q.includes("trial") || q.includes("30")) key="trial";
+    else if(q.includes("social") || q.includes("growth")) key="growth";
+    else if(q.includes("analytics") || q.includes("search")) key="analytics";
+    else if(q.includes("chat")) key="chat";
+    const item=topics[key];
+    addMessage(item.answer);
+    renderOptions(item.options);
+  }
+
+  function openAssistant(){
+    panel.hidden=false;
+    toggle.setAttribute("aria-expanded","true");
+    if(!messages.children.length){
+      addMessage("Hi, I'm the Invictis Assistant. I can answer quick questions about websites, the founding trial, organic growth and what we can build.");
+      renderOptions(["Website","30-Day Trial","Services","Organic Growth","Analytics","Chat Assistant"]);
+    }
+  }
+  function closeAssistant(){
+    panel.hidden=true;
+    toggle.setAttribute("aria-expanded","false");
+  }
+
+  toggle.addEventListener("click",()=>panel.hidden ? openAssistant() : closeAssistant());
+  close?.addEventListener("click",closeAssistant);
+  send?.addEventListener("click",()=>{
+    const value=input.value.trim();
+    if(!value)return;
+    addMessage(value,"user");
+    input.value="";
+    const q=value.toLowerCase();
+    let key="services";
+    if(q.includes("website")||q.includes("site")) key="website";
+    else if(q.includes("trial")||q.includes("free")||q.includes("30 day")) key="trial";
+    else if(q.includes("social")||q.includes("content")||q.includes("blog")) key="growth";
+    else if(q.includes("analytics")||q.includes("ga4")||q.includes("search console")) key="analytics";
+    else if(q.includes("chat")||q.includes("ai")) key="chat";
+    else if(q.includes("apply")||q.includes("contact")||q.includes("start")) key="apply";
+    const item=topics[key];
+    addMessage(item.answer);
+    renderOptions(item.options);
+  });
+  input?.addEventListener("keydown",e=>{if(e.key==="Enter")send.click()});
+})();
+
 
