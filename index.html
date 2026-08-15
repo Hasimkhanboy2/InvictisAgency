@@ -532,105 +532,44 @@ document.querySelectorAll("[data-placeholder]").forEach(a=>a.addEventListener("c
 
 /* ============================================================
 INVICTIS LEAD FORM
-Browser-resilient submission to Apps Script.
-The backend remains the source of truth for validation/duplicates.
+Connects the website application form to the deployed Apps Script lead endpoint.
 ============================================================ */
 (function initLeadForm(){
   const form = document.getElementById("review-form");
   if(!form) return;
-
   const ENDPOINT = "https://script.google.com/macros/s/AKfycby_AW-SQVPQTIaz0tzOmOtgLCg5Rj5NxZlrwBPLwXDs6T_Wcmsi_rPTRuSe0IyfIPHB/exec";
   const button = form.querySelector('button[type="submit"]');
   const status = document.getElementById("form-status");
-
-  function setStatus(message,state){
-    if(!status) return;
-    status.textContent=message;
-    status.dataset.state=state||"";
-  }
-
-  function normalizePhone(value){
-    let digits=String(value||"").replace(/\D/g,"");
-    if(digits.startsWith("91") && digits.length===12) digits=digits.slice(2);
-    return digits;
-  }
-
-  function validIndianPhone(value){
-    return /^[6-9]\d{9}$/.test(normalizePhone(value));
-  }
-
-  function validEmail(value){
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||"").trim());
-  }
-
-  function showSuccess(){
-    form.innerHTML =
-      '<header><b>THANK YOU</b><small>Your details have been received.</small></header>' +
-      '<div class="form-success">' +
-      '<div class="form-success-mark" aria-hidden="true">✓</div>' +
-      '<h3>We have your details.</h3>' +
-      '<p>We\'ll review your business and contact you using the details you provided.</p>' +
-      '<a class="btn btn-primary" href="#home">Back to website ↗</a>' +
-      '</div>';
-  }
-
-  function restoreButton(){
-    if(button){
-      button.disabled=false;
-      button.innerHTML='Send My Details ↗';
-    }
-    form.dataset.submitting="false";
-  }
-
-  form.addEventListener("submit", async function(event){
+  function setStatus(message, state){ if(!status) return; status.textContent=message; status.dataset.state=state||""; }
+  function normalizePhone(value){ let digits=String(value||"").replace(/\D/g,""); if(digits.startsWith("91")&&digits.length===12) digits=digits.slice(2); return digits; }
+  function validIndianPhone(value){ return /^[6-9]\d{9}$/.test(normalizePhone(value)); }
+  function validEmail(value){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||"").trim()); }
+  form.addEventListener("submit",function(event){
     event.preventDefault();
     if(form.dataset.submitting==="true") return;
-
-    const formData = new FormData(form);
+    const formData=new FormData(form);
     const name=String(formData.get("name")||"").trim();
     const business=String(formData.get("business")||"").trim();
     const email=String(formData.get("email")||"").trim().toLowerCase();
     const phone=String(formData.get("phone")||"").trim();
     const honeypot=String(formData.get("website")||"").trim();
-
     if(honeypot){setStatus("Please submit the form normally.","error");return;}
     if(name.length<2){setStatus("Please enter your name.","error");form.elements.name?.focus();return;}
     if(business.length<2){setStatus("Please enter your business name.","error");form.elements.business?.focus();return;}
     if(!validEmail(email)){setStatus("Please enter a valid email address.","error");form.elements.email?.focus();return;}
     if(!validIndianPhone(phone)){setStatus("Please enter a valid 10-digit Indian mobile number.","error");form.elements.phone?.focus();return;}
-
     form.dataset.submitting="true";
-    if(button){button.disabled=true;button.innerHTML="Sending...";}
-
+    if(button){button.disabled=true;button.innerHTML="Sending... <span aria-hidden=\"true\">↗</span>";}
     setStatus("Sending your details securely...","loading");
-
-    try{
-      /*
-       * no-cors keeps this a simple cross-origin POST and avoids a CORS
-       * preflight. Apps Script still receives and validates the lead.
-       */
-      await fetch(ENDPOINT,{
-        method:"POST",
-        mode:"no-cors",
-        body:new URLSearchParams(
-          Array.from(formData.entries()).map(([k,v])=>[k,String(v)])
-        ),
-        keepalive:true
-      });
-
-      /*
-       * An opaque no-cors response cannot expose the backend JSON.
-       * We therefore show success only after the browser successfully
-       * hands the POST to the endpoint. The backend remains responsible
-       * for rejecting duplicates/spam.
-       */
-      showSuccess();
-
-    }catch(error){
-      console.error("Invictis form submission failed:",error);
-      setStatus("We couldn't send the form. Please try again or email hello@invictisagency.co.in.","error");
-      restoreButton();
-    }
+    const frameName="invictis-lead-frame-"+Date.now();
+    const iframe=document.createElement("iframe"); iframe.name=frameName; iframe.title="Lead submission"; iframe.hidden=true; document.body.appendChild(iframe);
+    const submitForm=document.createElement("form"); submitForm.method="POST"; submitForm.action=ENDPOINT; submitForm.target=frameName; submitForm.style.display="none";
+    for(const [key,value] of formData.entries()){const input=document.createElement("input");input.type="hidden";input.name=key;input.value=value;submitForm.appendChild(input);}
+    document.body.appendChild(submitForm); submitForm.submit();
+    window.setTimeout(()=>{
+      form.innerHTML=`<header><b>THANK YOU</b><small>Your details have been received.</small></header><div class="form-success"><div class="form-success-mark" aria-hidden="true">✓</div><h3>We have your details.</h3><p>We'll review your business and contact you using the details you provided.</p><a class="btn btn-primary" href="#home">Back to website ↗</a></div>`;
+      submitForm.remove(); iframe.remove();
+    },1200);
   });
 })();
 
